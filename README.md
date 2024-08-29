@@ -1,5 +1,9 @@
 # Telnet Client in Zig
 
+> I begin to learn Zig through this project. But I found that this project can not be compiled with the latest Zig compiler.
+>
+> I'm trying to fix this issue and it should be compiled successfully with the Zig compiler of version 0.13.0.
+
 [![MIT License](https://img.shields.io/badge/license-MIT-blue)](https://choosealicense.com/licenses/mit/) [![Build Project](https://github.com/michidk/telnet-zig/actions/workflows/build.yaml/badge.svg)](https://github.com/michidk/telnet-zig/actions/workflows/build.yaml) [![Run Zig Tests](https://github.com/michidk/telnet-zig/actions/workflows/test.yaml/badge.svg)](https://github.com/michidk/telnet-zig/actions/workflows/test.yaml)
 
 This project is a Zig implementation of a simple telnet client.

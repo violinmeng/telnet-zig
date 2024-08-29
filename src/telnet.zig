@@ -98,7 +98,7 @@ pub fn subnegotiate(option: Option, comptime payload: []const u8) [payload.len +
     data[0] = IAC_BYTE;
     data[1] = @intFromEnum(Command.sb);
     data[2] = @intFromEnum(option);
-    std.mem.copy(u8, data[3 .. 3 + payload.len], payload);
+    std.mem.copyBackwards(u8, data[3 .. 3 + payload.len], payload);
     data[payload.len + 3] = IAC_BYTE;
     data[payload.len + 4] = @intFromEnum(Command.se);
 

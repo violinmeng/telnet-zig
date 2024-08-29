@@ -60,7 +60,7 @@ pub const TelnetClient = struct {
 
             // Command state: determine command and set negotiating state
             .iac => {
-                var cmd: telnet.Command = @enumFromInt(byte);
+                const cmd: telnet.Command = @enumFromInt(byte);
                 switch (cmd) {
                     .nop => {
                         // Do nothing

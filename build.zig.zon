@@ -2,6 +2,22 @@
     .name = "telnet-zig",
     .version = "0.1.0",
     .dependencies = .{
-        .clap = .{ .url = "https://github.com/Hejsil/zig-clap/archive/refs/tags/0.7.0.tar.gz", .hash = "1220f48518ce22882e102255ed3bcdb7aeeb4891f50b2cdd3bd74b5b2e24d3149ba2" },
+        .clap = .{ .url = "https://github.com/Hejsil/zig-clap/archive/refs/tags/0.9.1.tar.gz", .hash = "122062d301a203d003547b414237229b09a7980095061697349f8bef41be9c30266b" },
+    },
+    // Specifies the set of files and directories that are included in this package.
+    // Only files and directories listed here are included in the `hash` that
+    // is computed for this package. Only files listed here will remain on disk
+    // when using the zig package manager. As a rule of thumb, one should list
+    // files required for compilation plus any license(s).
+    // Paths are relative to the build root. Use the empty string (`""`) to refer to
+    // the build root itself.
+    // A directory listed here means that all files within, recursively, are included.
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        // For example...
+        //"LICENSE",
+        //"README.md",
     },
 }
