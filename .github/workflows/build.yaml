@@ -9,7 +9,7 @@ on:
       - 'build.zig.zon'
 
 env:
-  ZIG_VERSION: 0.14.0
+  ZIG_VERSION: 0.15.2
 
 jobs:
   build:
