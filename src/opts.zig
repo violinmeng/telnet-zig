@@ -76,7 +76,10 @@ pub fn parse(alloc: std.mem.Allocator) !?Opts {
             return error.MissingArgument;
         }
 
-        const uriStrInp: []const u8 = res.positionals[0];
+        const uriStrInp: []const u8 = res.positionals[0] orelse {
+            std.log.err("Missing telnet URI. Use -h to print the help.\n", .{});
+            return error.MissingArgument;
+        };
         return try Opts.init(alloc, uriStrInp);
     }
 }

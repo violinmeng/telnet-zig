@@ -6,8 +6,8 @@ const client = @import("client.zig");
 const opts = @import("opts.zig");
 const clap = @import("clap");
 
-pub const std_options = .{
-    .log_level = .debug, // Set this to `.warn` to disable all debug info
+pub const std_options: std.Options = .{
+    .log_level = .debug,
 };
 pub fn main() !void {
     // Setup allocator
