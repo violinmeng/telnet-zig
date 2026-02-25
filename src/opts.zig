@@ -2,7 +2,6 @@ const std = @import("std");
 const clap = @import("clap");
 const utils = @import("utils.zig");
 const telnet = @import("telnet.zig");
-const io = std.io;
 
 const OptErrors = error{
     MissingArgument,
@@ -59,16 +58,16 @@ pub fn parse(alloc: std.mem.Allocator) !?Opts {
         .diagnostic = &diag,
         .allocator = alloc,
     }) catch |err| {
-        diag.report(io.getStdErr().writer(), err) catch {};
+        try diag.reportToFile(.stderr(), err);
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        try clap.help(std.io.getStdOut().writer(), clap.Help, &params, .{});
+        try clap.helpToFile(.stdout(), clap.Help, &params, .{});
         return null;
     } else if (res.args.usage != 0) {
-        try clap.usage(std.io.getStdOut().writer(), clap.Help, &params);
+        try clap.usageToFile(.stdout(), clap.Help, &params);
         return null;
     } else {
         if (res.positionals.len < 1) {
