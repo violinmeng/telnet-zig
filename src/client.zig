@@ -1,8 +1,6 @@
 const std = @import("std");
-const io = std.io;
 const net = std.net;
-const fs = std.fs;
-const os = std.os;
+const Io = std.Io;
 const print = std.debug.print;
 const telnet = @import("telnet.zig");
 const Command = telnet.Command;
@@ -28,11 +26,11 @@ pub const TelnetClient = struct {
     writer: net.Stream.Writer,
     state: StateInfo,
 
-    pub fn init(stream: net.Stream) TelnetClient {
+    pub fn init(stream: net.Stream, read_buf: []u8, write_buf: []u8) TelnetClient {
         return TelnetClient{
             .stream = stream,
-            .reader = stream.reader(),
-            .writer = stream.writer(),
+            .reader = stream.reader(read_buf),
+            .writer = stream.writer(write_buf),
             .state = .normal,
         };
     }
@@ -41,11 +39,12 @@ pub const TelnetClient = struct {
         std.log.debug("Writing {d} bytes", .{data.len});
 
         // TODO: escape IAC bytes
-        try self.writer.writeAll(data);
+        try self.writer.interface.writeAll(data);
+        try self.writer.interface.flush();
     }
 
     pub fn read(self: *TelnetClient) anyerror!void {
-        const byte = try self.reader.readByte();
+        const byte = try self.reader.interface().takeByte();
 
         switch (self.state) {
 
@@ -155,7 +154,8 @@ pub const TelnetClient = struct {
                                     0, 24, // Height
                                 };
                                 const negotiation = &telnet.subnegotiate(Option.negotiateAboutWindowSize, windowSizeData);
-                                try self.writer.writeAll(negotiation);
+                                try self.writer.interface.writeAll(negotiation);
+                                try self.writer.interface.flush();
                             },
                             .dont => {
                                 std.log.debug("Server does not want to negotiate about window size, we accept", .{});
@@ -251,11 +251,12 @@ pub const TelnetClient = struct {
                                 'X', 'T', 'E', 'R', 'M', '-', '2', '5', '6', 'C', 'O', 'L', 'O', 'R', // Terminal type (`XTERM-256COLOR` is what the inetutils implementation sends)
                             };
                             const negotiation: []const u8 = &telnet.subnegotiate(Option.terminalType, terminalTypeData);
-                            try self.writer.writeAll(negotiation);
+                            try self.writer.interface.writeAll(negotiation);
+                            try self.writer.interface.flush();
 
                             self.state = .normal;
                         } else {
-                            std.log.warn("Unsupported data byte {d} during subnegotiation option `{c}` (state: {s}),", .{ byte, @tagName(option), @tagName(self.state) });
+                            std.log.warn("Unsupported data byte {d} during subnegotiation option `{s}` (state: {s}),", .{ byte, @tagName(option), @tagName(self.state) });
                             self.state = .normal;
                         }
                     },
@@ -270,6 +271,7 @@ pub const TelnetClient = struct {
 
     fn send(self: *TelnetClient, command: Command, option: Option) anyerror!void {
         std.log.debug("C: {s} {s}", .{ @tagName(command), @tagName(option) });
-        try self.writer.writeAll(&telnet.instruction(command, option));
+        try self.writer.interface.writeAll(&telnet.instruction(command, option));
+        try self.writer.interface.flush();
     }
 };
