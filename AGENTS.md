@@ -8,7 +8,7 @@ Zig telnet client (`telnet-zig`). Single-service project — no databases, Docke
 
 ### Zig version
 
-This project requires **Zig 0.15.2**. The Zig compiler is installed at `~/zig/zig-x86_64-linux-0.15.2/zig` and added to `PATH` via `~/.bashrc`. Verify with `zig version`.
+This project requires **Zig 0.16.0**. The Zig compiler is installed at `~/zig/zig-x86_64-linux-0.16.0/zig` and added to `PATH` via `~/.bashrc`. Verify with `zig version`.
 
 ### Common commands
 
