@@ -43,8 +43,7 @@ pub const Opts = struct {
     }
 };
 
-pub fn parse(alloc: std.mem.Allocator) !?Opts {
-    // CLI Parameters
+pub fn parse(alloc: std.mem.Allocator, init: std.process.Init) !?Opts {
     const params = comptime clap.parseParamsComptime(
         \\-h, --help                Display this help.
         \\-u, --usage               Displays a short command usage
@@ -52,22 +51,21 @@ pub fn parse(alloc: std.mem.Allocator) !?Opts {
         \\
     );
 
-    // Clap diagnostics are used to report errors to the user.
     var diag = clap.Diagnostic{};
-    var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
+    var res = clap.parse(clap.Help, &params, clap.parsers.default, init.minimal.args, .{
         .diagnostic = &diag,
         .allocator = alloc,
     }) catch |err| {
-        try diag.reportToFile(.stderr(), err);
+        try diag.reportToFile(init.io, .stderr(), err);
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        try clap.helpToFile(.stdout(), clap.Help, &params, .{});
+        try clap.helpToFile(init.io, .stdout(), clap.Help, &params, .{});
         return null;
     } else if (res.args.usage != 0) {
-        try clap.usageToFile(.stdout(), clap.Help, &params);
+        try clap.usageToFile(init.io, .stdout(), clap.Help, &params);
         return null;
     } else {
         if (res.positionals.len < 1) {
