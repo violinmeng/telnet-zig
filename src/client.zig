@@ -1,6 +1,6 @@
 const std = @import("std");
-const net = std.net;
 const Io = std.Io;
+const net = Io.net;
 const print = std.debug.print;
 const telnet = @import("telnet.zig");
 const Command = telnet.Command;
@@ -22,15 +22,17 @@ const StateInfo = union(State) {
 
 pub const TelnetClient = struct {
     stream: net.Stream,
+    io: Io,
     reader: net.Stream.Reader,
     writer: net.Stream.Writer,
     state: StateInfo,
 
-    pub fn init(stream: net.Stream, read_buf: []u8, write_buf: []u8) TelnetClient {
+    pub fn init(stream: net.Stream, io: Io, read_buf: []u8, write_buf: []u8) TelnetClient {
         return TelnetClient{
             .stream = stream,
-            .reader = stream.reader(read_buf),
-            .writer = stream.writer(write_buf),
+            .io = io,
+            .reader = net.Stream.Reader.init(stream, io, read_buf),
+            .writer = net.Stream.Writer.init(stream, io, write_buf),
             .state = .normal,
         };
     }
@@ -38,17 +40,14 @@ pub const TelnetClient = struct {
     pub fn write(self: *TelnetClient, data: []u8) anyerror!void {
         std.log.debug("Writing {d} bytes", .{data.len});
 
-        // TODO: escape IAC bytes
         try self.writer.interface.writeAll(data);
         try self.writer.interface.flush();
     }
 
     pub fn read(self: *TelnetClient) anyerror!void {
-        const byte = try self.reader.interface().takeByte();
+        const byte = try self.reader.interface.takeByte();
 
         switch (self.state) {
-
-            // Normal state: print characters and wait for IAC byte
             .normal => {
                 if (byte == telnet.IAC_BYTE) {
                     self.state = .iac;
@@ -57,17 +56,14 @@ pub const TelnetClient = struct {
                 }
             },
 
-            // Command state: determine command and set negotiating state
             .iac => {
                 const cmd: telnet.Command = @enumFromInt(byte);
                 switch (cmd) {
                     .nop => {
-                        // Do nothing
                         std.log.debug("Recieved NOP", .{});
                         self.state = .normal;
                     },
                     .iac => {
-                        // Escaped IAC byte
                         print("{c}", .{telnet.IAC_BYTE});
                         self.state = .normal;
                     },
@@ -75,7 +71,6 @@ pub const TelnetClient = struct {
                         self.state = StateInfo{ .negotiating = cmd };
                     },
                     .se => {
-                        // Subnegotiation end
                         self.state = .normal;
                     },
                     else => {
@@ -85,14 +80,12 @@ pub const TelnetClient = struct {
                 }
             },
 
-            // Negotiating state: determine option and send response
             .negotiating => |command| {
                 const option: telnet.Option = @enumFromInt(byte);
                 std.log.debug("S: {s} {s}", .{ @tagName(command), @tagName(option) });
 
                 switch (option) {
                     .echo => {
-                        // https://datatracker.ietf.org/doc/html/rfc857
                         switch (command) {
                             .will => {
                                 std.log.debug("Server wants to echo, we allow him", .{});
@@ -117,7 +110,6 @@ pub const TelnetClient = struct {
                         self.state = .normal;
                     },
                     .suppressGoAhead => {
-                        // https://datatracker.ietf.org/doc/html/rfc858
                         switch (command) {
                             .will => {
                                 std.log.debug("Server wants to suppress go ahead, we allow him", .{});
@@ -142,13 +134,11 @@ pub const TelnetClient = struct {
                         self.state = .normal;
                     },
                     .negotiateAboutWindowSize => {
-                        // https://datatracker.ietf.org/doc/html/rfc1073
                         switch (command) {
                             .do => {
                                 std.log.debug("Server wants to negotiate about window size, we send the info", .{});
                                 try self.send(.will, .negotiateAboutWindowSize);
 
-                                // TODO: get the correct width and height from the terminal
                                 const windowSizeData = &[_]u8{
                                     0, 80, // Width
                                     0, 24, // Height
@@ -168,7 +158,6 @@ pub const TelnetClient = struct {
                         self.state = .normal;
                     },
                     .terminalType => {
-                        // https://datatracker.ietf.org/doc/html/rfc1091
                         switch (command) {
                             .do => {
                                 std.log.debug("Server wants to ask us for our terminal type, we agree", .{});
@@ -195,7 +184,6 @@ pub const TelnetClient = struct {
                         }
                     },
                     .transmitBinary => {
-                        // https://datatracker.ietf.org/doc/html/rfc856
                         switch (command) {
                             .do => {
                                 std.log.debug("Server wants to transmit binary, we agree", .{});
@@ -239,7 +227,6 @@ pub const TelnetClient = struct {
                 }
             },
 
-            // Subnegotiating state: determine option and read until IAC SE
             .subnegotiating => |option| {
                 std.log.debug("Subnegotiating option `{s}`", .{@tagName(option)});
                 switch (option) {
@@ -248,7 +235,20 @@ pub const TelnetClient = struct {
                             std.log.debug("Send terminal type", .{});
                             const terminalTypeData: []const u8 = &[_]u8{
                                 telnet.IS_BYTE, // Is
-                                'X', 'T', 'E', 'R', 'M', '-', '2', '5', '6', 'C', 'O', 'L', 'O', 'R', // Terminal type (`XTERM-256COLOR` is what the inetutils implementation sends)
+                                'X',
+                                'T',
+                                'E',
+                                'R',
+                                'M',
+                                '-',
+                                '2',
+                                '5',
+                                '6',
+                                'C',
+                                'O',
+                                'L',
+                                'O',
+                                'R',
                             };
                             const negotiation: []const u8 = &telnet.subnegotiate(Option.terminalType, terminalTypeData);
                             try self.writer.interface.writeAll(negotiation);
